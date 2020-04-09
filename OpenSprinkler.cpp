@@ -25,6 +25,7 @@
 #include "server.h"
 #include "gpio.h"
 #include "testmode.h"
+#include "hunter.h"
 
 /** Declare static data members */
 NVConData OpenSprinkler::nvdata;
@@ -70,6 +71,7 @@ extern char tmp_buffer[];
 extern char ether_buffer[];
 
 #if defined(ESP8266)
+	HunterInterface OpenSprinkler::hunter(15);
 	SSD1306Display OpenSprinkler::lcd(0x3c, SDA, SCL);
 	byte OpenSprinkler::state = OS_STATE_INITIAL;
 	byte OpenSprinkler::prev_station_bits[MAX_NUM_BOARDS];
@@ -992,7 +994,25 @@ void OpenSprinkler::latch_apply_all_station_bits() {
  * !!! This will activate/deactivate valves !!!
  */
 void OpenSprinkler::apply_all_station_bits() {
+	static uint8_t lastbits = 0;
+	if(station_bits[0] != lastbits) {
+		bool stop = true;
 
+		for(uint8_t i = 0; i < 8; i++) {
+			if(station_bits[0] & (1 << i)) {
+				hunter.start(i+1, 240);
+				stop = false;
+				break;
+			}
+		}
+
+		if(stop) {
+			hunter.stopAll();
+		}
+		lastbits = station_bits[0];
+	}
+
+#if 0
 #if defined(ESP8266)
 	if(hw_type==HW_TYPE_LATCH) {
 		// if controller type is latching, the control mechanism is different
@@ -1089,6 +1109,7 @@ void OpenSprinkler::apply_all_station_bits() {
 			switch_special_station(sid, (station_bits[bid]>>s)&0x01);
 		}
 	}
+#endif
 }
 
 /** Read rain sensor status */
