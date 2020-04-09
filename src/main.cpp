@@ -26,7 +26,7 @@
 #include "OpenSprinkler.h"
 #include "program.h"
 #include "weather.h"
-#include "server.h"
+#include "os_server.h"
 
 #if defined(ARDUINO)
 	EthernetServer *m_server = NULL;

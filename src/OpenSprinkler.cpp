@@ -22,7 +22,7 @@
  */
 
 #include "OpenSprinkler.h"
-#include "server.h"
+#include "os_server.h"
 #include "gpio.h"
 #include "testmode.h"
 #include "hunter.h"
@@ -562,7 +562,7 @@ void OpenSprinkler::reboot_dev(uint8_t cause) {
 #include <sys/reboot.h>
 #include <stdlib.h>
 #include "utils.h"
-#include "server.h"
+#include "os_server.h"
 
 /** Initialize network with the given mac address and http port */
 byte OpenSprinkler::start_network() {
