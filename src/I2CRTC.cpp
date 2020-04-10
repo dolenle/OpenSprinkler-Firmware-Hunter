@@ -56,6 +56,7 @@ bool I2CRTC::detect()
 // PUBLIC FUNCTIONS
 time_t I2CRTC::get()	 // Aquire data from buffer and convert to time_t
 {
+	if(!addr) return 0;
 	tmElements_t tm;
 	read(tm);
 	return(makeTime(tm));

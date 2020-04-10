@@ -71,7 +71,7 @@ extern char tmp_buffer[];
 extern char ether_buffer[];
 
 #if defined(ESP8266)
-	HunterInterface OpenSprinkler::hunter(15);
+	HunterInterface OpenSprinkler::hunter(HUNTER_REM_PIN);
 	SSD1306Display OpenSprinkler::lcd(0x3c, SDA, SCL);
 	byte OpenSprinkler::state = OS_STATE_INITIAL;
 	byte OpenSprinkler::prev_station_bits[MAX_NUM_BOARDS];
@@ -720,7 +720,7 @@ void OpenSprinkler::begin() {
 			PIN_LATCH_COM = V2_PIN_LATCH_COM;
 			PIN_SENSOR1 = V2_PIN_SENSOR1;
 			PIN_SENSOR2 = V2_PIN_SENSOR2;
-		}		 
+		}
 	}
 	
 	/* detect expanders */
@@ -788,8 +788,10 @@ void OpenSprinkler::begin() {
 	nstations = nboards*8;
 
 	// set rf data pin
+#if !defined(HUNTER_REM_PIN)
 	pinModeExt(PIN_RFTX, OUTPUT);
 	digitalWriteExt(PIN_RFTX, LOW);
+#endif
 
 #if defined(ARDUINO)	// AVR SD and LCD functions
 
@@ -879,9 +881,6 @@ void OpenSprinkler::begin() {
 	pinMode(PIN_BUTTON_1, INPUT_PULLUP);
 	pinMode(PIN_BUTTON_2, INPUT_PULLUP);
 	pinMode(PIN_BUTTON_3, INPUT_PULLUP);
-	
-	// detect and check RTC type
-	RTC.detect();
 
 #else
 	DEBUG_PRINTLN(get_runtime_path());
@@ -994,6 +993,7 @@ void OpenSprinkler::latch_apply_all_station_bits() {
  * !!! This will activate/deactivate valves !!!
  */
 void OpenSprinkler::apply_all_station_bits() {
+#if defined(HUNTER_REM_PIN)
 	static uint8_t lastbits = 0;
 	if(station_bits[0] != lastbits) {
 		bool stop = true;
@@ -1006,13 +1006,14 @@ void OpenSprinkler::apply_all_station_bits() {
 			}
 		}
 
-		if(stop) {
+		if(stop) { // No stations running; stop all.
 			hunter.stopAll();
 		}
 		lastbits = station_bits[0];
 	}
 
-#if 0
+#else // defined(HUNTER_REM_PIN)
+
 #if defined(ESP8266)
 	if(hw_type==HW_TYPE_LATCH) {
 		// if controller type is latching, the control mechanism is different
@@ -1508,10 +1509,12 @@ int rf_gpio_fd = -1;
 void transmit_rfbit(ulong lenH, ulong lenL) {
 #if defined(ARDUINO)
 	#if defined(ESP8266)
+	#if !defined(HUNTER_REM_PIN)
 		digitalWrite(PIN_RFTX, 1);
 		delayMicroseconds(lenH);
 		digitalWrite(PIN_RFTX, 0);
 		delayMicroseconds(lenL);
+	#endif
 	#else
 		PORT_RF |= (1<<PINX_RF);
 		delayMicroseconds(lenH);
@@ -1556,10 +1559,12 @@ void OpenSprinkler::switch_rfstation(RFStationData *data, bool turnon) {
 	uint16_t length = parse_rfstation_code(data, &on, &off);
 #if defined(ARDUINO)
 	#if defined(ESP8266)
+	#if !defined(HUNTER_REM_PIN)
 	rfswitch.enableTransmit(PIN_RFTX);
 	rfswitch.setProtocol(1);
 	rfswitch.setPulseLength(length);
 	rfswitch.send(turnon ? on : off, 24);
+	#endif
 	#else
 	send_rfsignal(turnon ? on : off, length);
 	#endif
