@@ -26,7 +26,7 @@
 #include "OpenSprinkler.h"
 #include "program.h"
 #include "weather.h"
-#include "server.h"
+#include "os_server.h"
 
 #if defined(ARDUINO)
 	EthernetServer *m_server = NULL;
@@ -35,6 +35,7 @@
 	#if defined(ESP8266)
 		ESP8266WebServer *wifi_server = NULL;
 		static uint16_t led_blink_ms = LED_FAST_BLINK;
+		static unsigned long last_ntp_millis = 0;
 	#else
 		SdFat sd;																	// SD card object
 	#endif
@@ -52,13 +53,14 @@ void remote_http_callback(char*);
 
 // Small variations have been added to the timing values below
 // to minimize conflicting events
-#define NTP_SYNC_INTERVAL				86413L 	// NYP sync interval, in units of seconds
+#define NTP_SYNC_INTERVAL				86413L 	    // NYP sync interval, in units of seconds
+#define NTP_SYNC_RETRY_INTERVAL         60          // Retry interval
 #define RTC_SYNC_INTERVAL				3607		// RTC sync interval, 3600 secs
-#define CHECK_NETWORK_INTERVAL	601			// Network checking timeout, 10 minutes
-#define CHECK_WEATHER_TIMEOUT		7207L		// Weather check interval: 2 hours
-#define CHECK_WEATHER_SUCCESS_TIMEOUT 86400L // Weather check success interval: 24 hrs
-#define LCD_BACKLIGHT_TIMEOUT		15			// LCD backlight timeout: 15 secs
-#define PING_TIMEOUT						200			// Ping test timeout: 200 ms
+#define CHECK_NETWORK_INTERVAL			601			// Network checking timeout, 10 minutes
+#define CHECK_WEATHER_TIMEOUT		    7207L		// Weather check interval: 2 hours
+#define CHECK_WEATHER_SUCCESS_TIMEOUT   86400L      // Weather check success interval: 24 hrs
+#define LCD_BACKLIGHT_TIMEOUT		    15			// LCD backlight timeout: 15 secs
+#define PING_TIMEOUT					200			// Ping test timeout: 200 ms
 
 // Define buffers: need them to be sufficiently large to cover string option reading
 char ether_buffer[ETHER_BUFFER_SIZE+TMP_BUFFER_SIZE]; // ethernet buffer
@@ -297,9 +299,16 @@ void do_setup() {
 
 	pd.init();						// ProgramData init
 
-	setSyncInterval(RTC_SYNC_INTERVAL);  // RTC sync interval
-	// if rtc exists, sets it as time sync source
-	setSyncProvider(RTC.get);
+	// detect and check RTC type
+	if(!RTC.detect()) {
+		DEBUG_PRINTLN(F("RTC not found"));
+		setSyncProvider(NULL); //Use NTP; do not auto-sync
+	} else {
+		// if rtc exists, sets it as time sync source
+		setSyncProvider(RTC.get);
+		setSyncInterval(RTC_SYNC_INTERVAL);  // RTC sync interval
+	}
+
 	os.lcd_print_time(os.now_tz());  // display time to LCD
 	os.powerup_lasttime = os.now_tz();
 	
@@ -598,6 +607,12 @@ void do_loop()
 		#if defined(ESP8266)
 		pinModeExt(PIN_SENSOR1, INPUT_PULLUP); // this seems necessary for OS 3.2
 		pinModeExt(PIN_SENSOR2, INPUT_PULLUP);
+
+		if(timeStatus() == timeNotSet) {
+			os.status.enabled = 0; // Disable until clock is valid
+		} else {
+			os.status.enabled = os.iopts[IOPT_DEVICE_ENABLE];
+		}
 		#endif
 		
 		last_time = curr_time;
@@ -964,8 +979,11 @@ void do_loop()
 		// perform ntp sync
 		// instead of using curr_time, which may change due to NTP sync itself
 		// we use Arduino's millis() method
-		//if (curr_time % NTP_SYNC_INTERVAL == 0) os.status.req_ntpsync = 1;
-		if((millis()/1000) % NTP_SYNC_INTERVAL==0) os.status.req_ntpsync = 1;
+		unsigned long now_millis = millis();
+		if(now_millis - last_ntp_millis > NTP_SYNC_INTERVAL*1000) {
+			os.status.req_ntpsync = 1;
+			last_ntp_millis = now_millis;
+		}
 		perform_ntp_sync();
 
 		// check network connection
@@ -1694,6 +1712,9 @@ void perform_ntp_sync() {
 				os.reboot_dev(REBOOT_CAUSE_NTP);
 			}
 			#endif
+		} else if(timeStatus() == timeNotSet) {
+			DEBUG_PRINTLN(F("Retry..."));
+			last_ntp_millis = millis() - (NTP_SYNC_INTERVAL*1000) + (NTP_SYNC_RETRY_INTERVAL*1000);
 		}
 	}
 #else

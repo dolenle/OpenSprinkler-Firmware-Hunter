@@ -23,7 +23,7 @@
 
 #include "OpenSprinkler.h"
 #include "program.h"
-#include "server.h"
+#include "os_server.h"
 #include "weather.h"
 
 // External variables defined in main ion file

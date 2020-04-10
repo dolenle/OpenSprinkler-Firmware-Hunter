@@ -24,7 +24,7 @@
 #ifndef _DEFINES_H
 #define _DEFINES_H
 
-//#define ENABLE_DEBUG  // enable serial debug
+// #define ENABLE_DEBUG  // enable serial debug
 
 typedef unsigned char byte;
 typedef unsigned long ulong;
@@ -361,6 +361,8 @@ enum {
 	#define V2_PIN_LATCH_COM     IOEXP_PIN+15  
 	#define V2_PIN_SENSOR1       3  // sensor 1
 	#define V2_PIN_SENSOR2       10 // sensor 2
+
+	#define HUNTER_REM_PIN		 15
 
 #elif defined(OSPI) // for OSPi
 

@@ -42,6 +42,7 @@
 		#include <RCSwitch.h>
 		#include "SSD1306Display.h"
 		#include "espconnect.h"
+		#include "hunter.h"
 	#else
 		#include <SdFat.h>
 		#include "LiquidCrystal.h"
@@ -141,6 +142,7 @@ public:
 	// data members
 #if defined(ESP8266)
 	static SSD1306Display lcd;	// 128x64 OLED display
+	static HunterInterface hunter;
 #elif defined(ARDUINO)
 	static LiquidCrystal lcd; // 16x2 character LCD
 #else
