@@ -142,7 +142,7 @@ public:
 	// data members
 #if defined(ESP8266)
 	static SSD1306Display lcd;	// 128x64 OLED display
-	static HunterInterface hunter;
+	static HunterInterfaceUART hunter;
 #elif defined(ARDUINO)
 	static LiquidCrystal lcd; // 16x2 character LCD
 #else

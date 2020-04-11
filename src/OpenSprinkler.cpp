@@ -25,7 +25,6 @@
 #include "os_server.h"
 #include "gpio.h"
 #include "testmode.h"
-#include "hunter.h"
 
 /** Declare static data members */
 NVConData OpenSprinkler::nvdata;
@@ -71,7 +70,7 @@ extern char tmp_buffer[];
 extern char ether_buffer[];
 
 #if defined(ESP8266)
-	HunterInterface OpenSprinkler::hunter(HUNTER_REM_PIN);
+	HunterInterfaceUART OpenSprinkler::hunter(HUNTER_REM_PIN);
 	SSD1306Display OpenSprinkler::lcd(0x3c, SDA, SCL);
 	byte OpenSprinkler::state = OS_STATE_INITIAL;
 	byte OpenSprinkler::prev_station_bits[MAX_NUM_BOARDS];
@@ -714,7 +713,10 @@ void OpenSprinkler::begin() {
 			PIN_BUTTON_1 = V2_PIN_BUTTON_1;
 			PIN_BUTTON_2 = V2_PIN_BUTTON_2;
 			PIN_BUTTON_3 = V2_PIN_BUTTON_3;
-			PIN_RFTX = V2_PIN_RFTX;
+			#ifdef V2_PIN_RFTX
+				PIN_RFTX = V2_PIN_RFTX;
+				#define PIN_RFTX PIN_RFTX
+			#endif
 			PIN_BOOST = V2_PIN_BOOST;
 			PIN_BOOST_EN = V2_PIN_BOOST_EN;
 			PIN_LATCH_COM = V2_PIN_LATCH_COM;
@@ -788,7 +790,7 @@ void OpenSprinkler::begin() {
 	nstations = nboards*8;
 
 	// set rf data pin
-#if !defined(HUNTER_REM_PIN)
+#if defined(PIN_RFTX)
 	pinModeExt(PIN_RFTX, OUTPUT);
 	digitalWriteExt(PIN_RFTX, LOW);
 #endif
@@ -1000,7 +1002,7 @@ void OpenSprinkler::apply_all_station_bits() {
 
 		for(uint8_t i = 0; i < 8; i++) {
 			if(station_bits[0] & (1 << i)) {
-				hunter.start(i+1, 240);
+				hunter.start(i+1, 240); // Runs for 6 hours
 				stop = false;
 				break;
 			}
@@ -1509,7 +1511,7 @@ int rf_gpio_fd = -1;
 void transmit_rfbit(ulong lenH, ulong lenL) {
 #if defined(ARDUINO)
 	#if defined(ESP8266)
-	#if !defined(HUNTER_REM_PIN)
+	#if defined(PIN_RFTX)
 		digitalWrite(PIN_RFTX, 1);
 		delayMicroseconds(lenH);
 		digitalWrite(PIN_RFTX, 0);
@@ -1559,7 +1561,7 @@ void OpenSprinkler::switch_rfstation(RFStationData *data, bool turnon) {
 	uint16_t length = parse_rfstation_code(data, &on, &off);
 #if defined(ARDUINO)
 	#if defined(ESP8266)
-	#if !defined(HUNTER_REM_PIN)
+	#if defined(PIN_RFTX)
 	rfswitch.enableTransmit(PIN_RFTX);
 	rfswitch.setProtocol(1);
 	rfswitch.setPulseLength(length);
@@ -2362,6 +2364,10 @@ void OpenSprinkler::lcd_print_option(int i) {
 /** Button functions */
 /** wait for button */
 byte OpenSprinkler::button_read_busy(byte pin_butt, byte waitmode, byte butt, byte is_holding) {
+
+#if BUTTON_DISABLE
+	return BUTTON_NONE;
+#endif
 
 	int hold_time = 0;
 

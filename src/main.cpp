@@ -1683,8 +1683,10 @@ void perform_ntp_sync() {
 	if (os.status.req_ntpsync) {
 		// check if rtc is uninitialized
 		// 978307200 is Jan 1, 2001, 00:00:00
+		#if !defined(ESP8266)
 		boolean rtc_zero = (now()<=978307200L);
-		
+		#endif
+
 		os.status.req_ntpsync = 0;
 		if (!ui_state) {
 			os.lcd_print_line_clear_pgm(PSTR("NTP Syncing..."),1);
@@ -1712,7 +1714,7 @@ void perform_ntp_sync() {
 				os.reboot_dev(REBOOT_CAUSE_NTP);
 			}
 			#endif
-		} else if(timeStatus() == timeNotSet) {
+		} else if(timeStatus() == timeNotSet) { // If time has not been set, retry soon
 			DEBUG_PRINTLN(F("Retry..."));
 			last_ntp_millis = millis() - (NTP_SYNC_INTERVAL*1000) + (NTP_SYNC_RETRY_INTERVAL*1000);
 		}
