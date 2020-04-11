@@ -13,21 +13,35 @@
 #include <Arduino.h>
 
 // library interface description
-class HunterInterface
+class HunterInterfaceBitbang
 {
-	// user-accessible "public" interface
-	public:
-	HunterInterface(uint8_t pin);
-    static void start(uint8_t zone, uint8_t time);
-    static void stopAll();
-    static void program(uint8_t num);
-	
-	private:
-	static void bitOne();
-    static void bitZero();
-    static void write(uint8_t * buffer, int len, bool extrabit);
+    public:
+    HunterInterfaceBitbang(uint8_t pin);
+    void start(uint8_t zone, uint8_t time);
+    void stopAll() {start(1,0);}
+    void program(uint8_t num);
+
+    private:
+    void bitOne();
+    void bitZero();
+    void write(uint8_t * buffer, int len, bool extrabit);
     static void setBitfield(uint8_t * bits, uint8_t pos, uint8_t val, uint8_t len);
-    static uint8_t hunter_pin;
+    uint8_t hunter_pin;
+};
+
+class HunterInterfaceUART
+{
+    public:
+    HunterInterfaceUART(uint8_t pin);
+    void start(uint8_t zone, uint8_t time);
+    void stopAll() {start(1,0);}
+    void program(uint8_t num);
+
+    private:
+    void write(uint8_t * buffer, int len);
+    static void setBitfield(uint8_t * bits, uint8_t pos, uint8_t val, uint8_t len);
+    HardwareSerial * hunter_uart;
+    volatile uint32_t * hunter_uart_cfg;
 };
 
 #endif

@@ -33,8 +33,8 @@ typedef unsigned long ulong;
 
 /** Firmware version, hardware version, and maximal values */
 #define OS_FW_VERSION  219  // Firmware version: 219 means 2.1.9
-                            // if this number is different from the one stored in non-volatile memory
-                            // a device reset will be automatically triggered
+							// if this number is different from the one stored in non-volatile memory
+							// a device reset will be automatically triggered
 
 #define OS_FW_MINOR      3  // Firmware minor version
 
@@ -350,19 +350,34 @@ enum {
 
 	/* OS30 revision 2 pin defines */
 	// pins on PCA9555A IO expander have pin numbers IOEXP_PIN+i
+	// #define V2_IO_CONFIG         0x1F00 // config bits
+	// #define V2_IO_OUTPUT         0x1F00 // output bits
+	// #define V2_PIN_BUTTON_1      2 // button 1
+	// #define V2_PIN_BUTTON_2      0 // button 2
+	// #define V2_PIN_BUTTON_3      IOEXP_PIN+12 // button 3
+	// #define V2_PIN_RFTX          15
+	// #define V2_PIN_BOOST         IOEXP_PIN+13
+	// #define V2_PIN_BOOST_EN      IOEXP_PIN+14
+	// #define V2_PIN_LATCH_COM     IOEXP_PIN+15  
+	// #define V2_PIN_SENSOR1       3  // sensor 1
+	// #define V2_PIN_SENSOR2       10 // sensor 2
+
+	#define BUTTON_DISABLE       1
+
+	// Hunter mod
+	// GPIO 12, 13, 14, 16 reserved for SPI ethernet
 	#define V2_IO_CONFIG         0x1F00 // config bits
 	#define V2_IO_OUTPUT         0x1F00 // output bits
-	#define V2_PIN_BUTTON_1      2 // button 1
+	#define V2_PIN_BUTTON_1      15 // button 1
 	#define V2_PIN_BUTTON_2      0 // button 2
 	#define V2_PIN_BUTTON_3      IOEXP_PIN+12 // button 3
-	#define V2_PIN_RFTX          15
 	#define V2_PIN_BOOST         IOEXP_PIN+13
 	#define V2_PIN_BOOST_EN      IOEXP_PIN+14
 	#define V2_PIN_LATCH_COM     IOEXP_PIN+15  
 	#define V2_PIN_SENSOR1       3  // sensor 1
 	#define V2_PIN_SENSOR2       10 // sensor 2
 
-	#define HUNTER_REM_PIN		 15
+	#define HUNTER_REM_PIN       2
 
 #elif defined(OSPI) // for OSPi
 
