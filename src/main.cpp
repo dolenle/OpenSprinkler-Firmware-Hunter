@@ -605,8 +605,16 @@ void do_loop()
 #endif
 
 		#if defined(ESP8266)
-		pinModeExt(PIN_SENSOR1, INPUT_PULLUP); // this seems necessary for OS 3.2
-		pinModeExt(PIN_SENSOR2, INPUT_PULLUP);
+		#if (ENABLE_SENSOR1_PU)
+			pinModeExt(PIN_SENSOR1, INPUT_PULLUP); // this seems necessary for OS 3.2
+		#else
+			pinModeExt(PIN_SENSOR1, INPUT); 
+		#endif
+		#if (ENABLE_SENSOR2_PU)
+			pinModeExt(PIN_SENSOR2, INPUT_PULLUP);
+		#else
+			pinModeExt(PIN_SENSOR2, INPUT);
+		#endif
 
 		if(timeStatus() == timeNotSet) {
 			os.status.enabled = 0; // Disable until clock is valid

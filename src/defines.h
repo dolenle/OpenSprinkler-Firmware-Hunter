@@ -362,15 +362,19 @@ enum {
 	// #define V2_PIN_SENSOR1       3  // sensor 1
 	// #define V2_PIN_SENSOR2       10 // sensor 2
 
-	#define BUTTON_DISABLE       1
-
-	// Hunter mod
+	// Hunter mod using NodeMCUv1
 	// GPIO 12, 13, 14, 16 reserved for SPI ethernet
+
+	#define FORCE_OS3V2			 1 // 0 to allow auto-detect, 1 to force 3.2 HW
+	// Hunter PRO-C sensor is common-HIGH (pulled down), so disable pull-ups
+	#define ENABLE_SENSOR1_PU    0 // Note: External PU from USB-Serial on GPIO3
+	#define ENABLE_SENSOR2_PU    0
+
 	#define V2_IO_CONFIG         0x1F00 // config bits
 	#define V2_IO_OUTPUT         0x1F00 // output bits
-	#define V2_PIN_BUTTON_1      15 // button 1
-	#define V2_PIN_BUTTON_2      0 // button 2
-	#define V2_PIN_BUTTON_3      IOEXP_PIN+12 // button 3
+	#define V2_PIN_BUTTON_1      255 // button 1 disabled
+	#define V2_PIN_BUTTON_2      255 // button 2 disabled
+	#define V2_PIN_BUTTON_3      255 // button 3 disabled
 	#define V2_PIN_BOOST         IOEXP_PIN+13
 	#define V2_PIN_BOOST_EN      IOEXP_PIN+14
 	#define V2_PIN_LATCH_COM     IOEXP_PIN+15  

@@ -644,7 +644,7 @@ void OpenSprinkler::begin() {
 	else if(detect_i2c(LADR_I2CADDR)) hw_type = HW_TYPE_LATCH;
 	
 	/* detect hardware revision type */
-	if(detect_i2c(MAIN_I2CADDR)) {	// check if main PCF8574 exists
+	if(detect_i2c(MAIN_I2CADDR) && !FORCE_OS3V2) {	// check if main PCF8574 exists
 		/* assign revision 0 pins */
 		PIN_BUTTON_1 = V0_PIN_BUTTON_1;
 		PIN_BUTTON_2 = V0_PIN_BUTTON_2;
@@ -687,7 +687,7 @@ void OpenSprinkler::begin() {
 		mainio = drio;
 
 		pinMode(16, INPUT);
-		if(digitalRead(16)==LOW) {
+		if(digitalRead(16)==LOW && !FORCE_OS3V2) {
 			// revision 1
 			hw_rev = 1;
 			mainio->i2c_write(NXP_CONFIG_REG, V1_IO_CONFIG);
@@ -706,6 +706,7 @@ void OpenSprinkler::begin() {
 			PIN_SENSOR2 = V1_PIN_SENSOR2;
 		} else {
 			// revision 2
+			// NodeMCUv1 is detected as revision 2 due to LED on GPIO16
 			hw_rev = 2;
 			mainio->i2c_write(NXP_CONFIG_REG, V2_IO_CONFIG);
 			mainio->i2c_write(NXP_OUTPUT_REG, V2_IO_OUTPUT);
@@ -761,8 +762,16 @@ void OpenSprinkler::begin() {
 
 #if defined(ESP8266)
 	// OS 3.0 has two independent sensors
-	pinModeExt(PIN_SENSOR1, INPUT_PULLUP);
-	pinModeExt(PIN_SENSOR2, INPUT_PULLUP);
+	#if (ENABLE_SENSOR1_PU)
+		pinModeExt(PIN_SENSOR1, INPUT_PULLUP);
+	#else
+		pinModeExt(PIN_SENSOR1, INPUT); 
+	#endif
+	#if (ENABLE_SENSOR2_PU)
+		pinModeExt(PIN_SENSOR2, INPUT_PULLUP);
+	#else
+		pinModeExt(PIN_SENSOR2, INPUT);
+	#endif
 	
 #else
 	// pull shift register OE low to enable output
@@ -2364,11 +2373,6 @@ void OpenSprinkler::lcd_print_option(int i) {
 /** Button functions */
 /** wait for button */
 byte OpenSprinkler::button_read_busy(byte pin_butt, byte waitmode, byte butt, byte is_holding) {
-
-#if BUTTON_DISABLE
-	return BUTTON_NONE;
-#endif
-
 	int hold_time = 0;
 
 	if (waitmode==BUTTON_WAIT_NONE || (waitmode == BUTTON_WAIT_HOLD && is_holding)) {
