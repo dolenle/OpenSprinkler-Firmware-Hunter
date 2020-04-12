@@ -1005,22 +1005,24 @@ void OpenSprinkler::latch_apply_all_station_bits() {
  */
 void OpenSprinkler::apply_all_station_bits() {
 #if defined(HUNTER_REM_PIN)
-	static uint8_t lastbits = 0;
-	if(station_bits[0] != lastbits) {
-		bool stop = true;
-
-		for(uint8_t i = 0; i < 8; i++) {
-			if(station_bits[0] & (1 << i)) {
-				hunter.start(i+1, 240); // Runs for 6 hours
-				stop = false;
-				break;
+	static uint8_t lastbits[6] = {0};
+	bool stop = true;
+	bool update = false;
+	for(int e = 0; e < 6; e++) { // Up to 48 zones
+		if(station_bits[e] != lastbits[e]) {
+			update = true;
+			lastbits[e] = station_bits[e];
+			for(int i = 0; i < 8; i++) {
+				if(station_bits[e] & (1 << i)) {
+					hunter.start(8*e+i+1, 240); // Runs for 6 hours
+					stop = false;
+					return; // Sequential only.
+				}
 			}
 		}
-
-		if(stop) { // No stations running; stop all.
-			hunter.stopAll();
-		}
-		lastbits = station_bits[0];
+	}
+	if(update && stop) { // No stations running; stop all.
+		hunter.stopAll();
 	}
 
 #else // defined(HUNTER_REM_PIN)
@@ -1128,9 +1130,13 @@ void OpenSprinkler::apply_all_station_bits() {
 void OpenSprinkler::detect_binarysensor_status(ulong curr_time) {
 	// sensor_type: 0 if normally closed, 1 if normally open
 	if(iopts[IOPT_SENSOR1_TYPE]==SENSOR_TYPE_RAIN || iopts[IOPT_SENSOR1_TYPE]==SENSOR_TYPE_SOIL) {
-		pinModeExt(PIN_SENSOR1, INPUT_PULLUP); // this seems necessary for OS 3.2
+		#if (ENABLE_SENSOR1_PU)
+			pinModeExt(PIN_SENSOR1, INPUT_PULLUP); // this seems necessary for OS 3.2
+		#else
+			pinModeExt(PIN_SENSOR1, INPUT); 
+		#endif
 		byte val = digitalReadExt(PIN_SENSOR1);
-		status.sensor1 = (val == iopts[IOPT_SENSOR1_OPTION]) ? 0 : 1;
+		status.sensor1 = (val == iopts[IOPT_SENSOR1_OPTION]) ^ BINARY_SENSOR_INVERT;
 		if(status.sensor1) {
 			if(!sensor1_on_timer) {
 				// add minimum of 5 seconds on delay
@@ -1158,9 +1164,13 @@ void OpenSprinkler::detect_binarysensor_status(ulong curr_time) {
 // ESP8266 is guaranteed to have sensor 2
 #if defined(ESP8266) || defined(PIN_SENSOR2)
 	if(iopts[IOPT_SENSOR2_TYPE]==SENSOR_TYPE_RAIN || iopts[IOPT_SENSOR2_TYPE]==SENSOR_TYPE_SOIL) {
-		pinModeExt(PIN_SENSOR2, INPUT_PULLUP); // this seems necessary for OS 3.2	
+		#if (ENABLE_SENSOR2_PU)
+			pinModeExt(PIN_SENSOR2, INPUT_PULLUP);
+		#else
+			pinModeExt(PIN_SENSOR2, INPUT);
+		#endif
 		byte val = digitalReadExt(PIN_SENSOR2);
-		status.sensor2 = (val == iopts[IOPT_SENSOR2_OPTION]) ? 0 : 1;
+		status.sensor2 = (val != iopts[IOPT_SENSOR2_OPTION]) ^ BINARY_SENSOR_INVERT;
 		if(status.sensor2) {
 			if(!sensor2_on_timer) {
 				// add minimum of 5 seconds on delay
@@ -1277,6 +1287,11 @@ uint16_t OpenSprinkler::read_current() {
 int OpenSprinkler::detect_exp() {
 #if defined(ARDUINO)
 	#if defined(ESP8266)
+
+	#if defined(HUNTER_REM_PIN)
+		return 5; // Up to 48 stations total
+	#endif
+
 	// detect the highest expansion board index
 	int n;
 	for(n=4;n>=0;n--) {

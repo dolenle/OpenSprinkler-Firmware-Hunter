@@ -122,7 +122,7 @@ typedef unsigned long ulong;
 
 /** Storage / zone expander defines */
 #if defined(ARDUINO)
-	#define MAX_EXT_BOARDS    8  // maximum number of 8-zone expanders (each 16-zone expander counts as 2)
+	#define MAX_EXT_BOARDS    5  // maximum number of 8-zone expanders (each 16-zone expander counts as 2)
 #else
 	#define MAX_EXT_BOARDS		24 // allow more zones for linux-based firmwares
 #endif
@@ -366,9 +366,10 @@ enum {
 	// GPIO 12, 13, 14, 16 reserved for SPI ethernet
 
 	#define FORCE_OS3V2			 1 // 0 to allow auto-detect, 1 to force 3.2 HW
-	// Hunter PRO-C sensor is common-HIGH (pulled down), so disable pull-ups
-	#define ENABLE_SENSOR1_PU    0 // Note: External PU from USB-Serial on GPIO3
+	// Hunter PRO-C sensor is common-HIGH (pulled down), so disable pull-ups if sensor is connected
+	#define ENABLE_SENSOR1_PU    1 // Note: External PU from USB-Serial on GPIO3
 	#define ENABLE_SENSOR2_PU    0
+	#define BINARY_SENSOR_INVERT 1 // 1 to invert NO/NC logic
 
 	#define V2_IO_CONFIG         0x1F00 // config bits
 	#define V2_IO_OUTPUT         0x1F00 // output bits
