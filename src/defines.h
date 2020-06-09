@@ -302,7 +302,7 @@ enum {
 	#define PIN_FREE_LIST     {} // no free GPIO pin at the moment
 	#define ETHER_BUFFER_SIZE   8192
 
-	#define PIN_ETHER_CS       16 // ENC28J60 CS (chip select pin) is 16 on OS 3.2.
+	#define PIN_ETHER_CS       0 // ENC28J60 CS (chip select pin) is 16 on Hunter Wifi board.
 
 	/* To accommodate different OS30 versions, we use software defines pins */ 
 	extern byte PIN_BUTTON_1;
@@ -362,27 +362,31 @@ enum {
 	// #define V2_PIN_SENSOR1       3  // sensor 1
 	// #define V2_PIN_SENSOR2       10 // sensor 2
 
-	// Hunter mod using NodeMCUv1
+	// Hunter mod using ESP8266 (Detect as OS3.2)
 	// GPIO 12, 13, 14, 16 reserved for SPI ethernet
 
 	#define FORCE_OS3V2			 1 // 0 to allow auto-detect, 1 to force 3.2 HW
-	// Hunter PRO-C sensor is common-HIGH (pulled down), so disable pull-ups if sensor is connected
-	#define ENABLE_SENSOR1_PU    1 // Note: External PU from USB-Serial on GPIO3
-	#define ENABLE_SENSOR2_PU    0
-	#define BINARY_SENSOR_INVERT 1 // 1 to invert NO/NC logic
+	#define ENABLE_ISENSE		 0
+	#define SHOW_SENSOR2		 0 // 1 to enable sensor 2 in UI (can use GPIO10)
 
 	#define V2_IO_CONFIG         0x1F00 // config bits
 	#define V2_IO_OUTPUT         0x1F00 // output bits
-	#define V2_PIN_BUTTON_1      255 // button 1 disabled
+	#define V2_PIN_BUTTON_1      15 // button 1 disabled
 	#define V2_PIN_BUTTON_2      255 // button 2 disabled
 	#define V2_PIN_BUTTON_3      255 // button 3 disabled
 	#define V2_PIN_BOOST         IOEXP_PIN+13
 	#define V2_PIN_BOOST_EN      IOEXP_PIN+14
-	#define V2_PIN_LATCH_COM     IOEXP_PIN+15  
-	#define V2_PIN_SENSOR1       3  // sensor 1
-	#define V2_PIN_SENSOR2       10 // sensor 2
+	#define V2_PIN_LATCH_COM     IOEXP_PIN+15
+	#define V2_PIN_SENSOR1       16  // sensor 1
+	#define V2_PIN_SENSOR2       255 // sensor 2
 
-	#define HUNTER_REM_PIN       2
+	// Hunter PRO-C sensor is common-HIGH (pulldown), so use pulldown on GPIO16
+	#define SENSOR1_PINMODE      INPUT_PULLUP
+	#define SENSOR1_ACTIVE_LOW   1
+	#define SENSOR2_PINMODE      INPUT
+	#define SENSOR2_ACTIVE_LOW   1
+
+	#define HUNTER_REM_PIN       2 // UART1 Tx
 
 #elif defined(OSPI) // for OSPi
 
