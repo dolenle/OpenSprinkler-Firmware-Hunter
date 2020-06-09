@@ -70,7 +70,7 @@ extern char tmp_buffer[];
 extern char ether_buffer[];
 
 #if defined(ESP8266)
-	HunterInterfaceUART OpenSprinkler::hunter(HUNTER_REM_PIN);
+	HunterInterface OpenSprinkler::hunter(HUNTER_REM_PIN);
 	SSD1306Display OpenSprinkler::lcd(0x3c, SDA, SCL);
 	byte OpenSprinkler::state = OS_STATE_INITIAL;
 	byte OpenSprinkler::prev_station_bits[MAX_NUM_BOARDS];
@@ -150,8 +150,13 @@ const char iopt_json_names[] PROGMEM =
 	"ife\0\0"
 	"sn1t\0"
 	"sn1o\0"
+#if (SHOW_SENSOR2)
 	"sn2t\0"
 	"sn2o\0"
+#else
+	"null\0"
+	"null\0"
+#endif
 	"sn1on"
 	"sn1of"
 	"sn2on"
@@ -762,16 +767,8 @@ void OpenSprinkler::begin() {
 
 #if defined(ESP8266)
 	// OS 3.0 has two independent sensors
-	#if (ENABLE_SENSOR1_PU)
-		pinModeExt(PIN_SENSOR1, INPUT_PULLUP);
-	#else
-		pinModeExt(PIN_SENSOR1, INPUT); 
-	#endif
-	#if (ENABLE_SENSOR2_PU)
-		pinModeExt(PIN_SENSOR2, INPUT_PULLUP);
-	#else
-		pinModeExt(PIN_SENSOR2, INPUT);
-	#endif
+	pinModeExt(PIN_SENSOR1, SENSOR1_PINMODE);
+	pinModeExt(PIN_SENSOR2, SENSOR2_PINMODE);
 	
 #else
 	// pull shift register OE low to enable output
@@ -808,7 +805,7 @@ void OpenSprinkler::begin() {
 
 	#if defined(ESP8266)	// OS3.0 specific detections
 
-		status.has_curr_sense = 1;	// OS3.0 has current sensing capacility
+		status.has_curr_sense = ENABLE_ISENSE;	// OS3.0 has current sensing capacility
 		// measure baseline current
 		baseline_current = 80;
 		
@@ -889,7 +886,7 @@ void OpenSprinkler::begin() {
 		
 	// set button pins
 	// enable internal pullup
-	pinMode(PIN_BUTTON_1, INPUT_PULLUP);
+	// pinMode(PIN_BUTTON_1, INPUT_PULLUP);
 	pinMode(PIN_BUTTON_2, INPUT_PULLUP);
 	pinMode(PIN_BUTTON_3, INPUT_PULLUP);
 
@@ -1130,13 +1127,9 @@ void OpenSprinkler::apply_all_station_bits() {
 void OpenSprinkler::detect_binarysensor_status(ulong curr_time) {
 	// sensor_type: 0 if normally closed, 1 if normally open
 	if(iopts[IOPT_SENSOR1_TYPE]==SENSOR_TYPE_RAIN || iopts[IOPT_SENSOR1_TYPE]==SENSOR_TYPE_SOIL) {
-		#if (ENABLE_SENSOR1_PU)
-			pinModeExt(PIN_SENSOR1, INPUT_PULLUP); // this seems necessary for OS 3.2
-		#else
-			pinModeExt(PIN_SENSOR1, INPUT); 
-		#endif
+		pinModeExt(PIN_SENSOR1, SENSOR1_PINMODE);
 		byte val = digitalReadExt(PIN_SENSOR1);
-		status.sensor1 = (val == iopts[IOPT_SENSOR1_OPTION]) ^ BINARY_SENSOR_INVERT;
+		status.sensor1 = (val == iopts[IOPT_SENSOR1_OPTION]) ^ SENSOR1_ACTIVE_LOW;
 		if(status.sensor1) {
 			if(!sensor1_on_timer) {
 				// add minimum of 5 seconds on delay
@@ -1164,13 +1157,9 @@ void OpenSprinkler::detect_binarysensor_status(ulong curr_time) {
 // ESP8266 is guaranteed to have sensor 2
 #if defined(ESP8266) || defined(PIN_SENSOR2)
 	if(iopts[IOPT_SENSOR2_TYPE]==SENSOR_TYPE_RAIN || iopts[IOPT_SENSOR2_TYPE]==SENSOR_TYPE_SOIL) {
-		#if (ENABLE_SENSOR2_PU)
-			pinModeExt(PIN_SENSOR2, INPUT_PULLUP);
-		#else
-			pinModeExt(PIN_SENSOR2, INPUT);
-		#endif
+		pinModeExt(PIN_SENSOR2, SENSOR2_PINMODE);
 		byte val = digitalReadExt(PIN_SENSOR2);
-		status.sensor2 = (val != iopts[IOPT_SENSOR2_OPTION]) ^ BINARY_SENSOR_INVERT;
+		status.sensor2 = (val != iopts[IOPT_SENSOR2_OPTION]) ^ SENSOR2_ACTIVE_LOW;
 		if(status.sensor2) {
 			if(!sensor2_on_timer) {
 				// add minimum of 5 seconds on delay
@@ -1287,11 +1276,6 @@ uint16_t OpenSprinkler::read_current() {
 int OpenSprinkler::detect_exp() {
 #if defined(ARDUINO)
 	#if defined(ESP8266)
-
-	#if defined(HUNTER_REM_PIN)
-		return 5; // Up to 48 stations total
-	#endif
-
 	// detect the highest expansion board index
 	int n;
 	for(n=4;n>=0;n--) {
@@ -2391,11 +2375,11 @@ byte OpenSprinkler::button_read_busy(byte pin_butt, byte waitmode, byte butt, by
 	int hold_time = 0;
 
 	if (waitmode==BUTTON_WAIT_NONE || (waitmode == BUTTON_WAIT_HOLD && is_holding)) {
-		if (digitalReadExt(pin_butt) != 0) return BUTTON_NONE;
+		if (digitalReadExt(pin_butt) != 1) return BUTTON_NONE;
 		return butt | (is_holding ? BUTTON_FLAG_HOLD : 0);
 	}
 
-	while (digitalReadExt(pin_butt) == 0 &&
+	while (digitalReadExt(pin_butt) == 1 &&
 				 (waitmode == BUTTON_WAIT_RELEASE || (waitmode == BUTTON_WAIT_HOLD && hold_time<BUTTON_HOLD_MS))) {
 		delay(BUTTON_DELAY_MS);
 		hold_time += BUTTON_DELAY_MS;
@@ -2415,7 +2399,7 @@ byte OpenSprinkler::button_read(byte waitmode)
 
 	delay(BUTTON_DELAY_MS);
 
-	if (digitalReadExt(PIN_BUTTON_1) == 0) {
+	if (digitalReadExt(PIN_BUTTON_1) == 1) {
 		curr = button_read_busy(PIN_BUTTON_1, waitmode, BUTTON_1, is_holding);
 	} else if (digitalReadExt(PIN_BUTTON_2) == 0) {
 		curr = button_read_busy(PIN_BUTTON_2, waitmode, BUTTON_2, is_holding);

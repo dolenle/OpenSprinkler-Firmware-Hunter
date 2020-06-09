@@ -83,7 +83,7 @@ float flow_last_gpm=0;
 
 void flow_poll() {
 	#if defined(ESP8266)
-	pinModeExt(PIN_SENSOR1, INPUT_PULLUP); // this seems necessary for OS 3.2 
+	pinModeExt(PIN_SENSOR1, SENSOR1_PINMODE); // this seems necessary for OS 3.2 
 	#endif
 	byte curr_flow_state = digitalReadExt(PIN_SENSOR1);
 	if(!(prev_flow_state==HIGH && curr_flow_state==LOW)) {	// only record on falling edge
@@ -605,16 +605,8 @@ void do_loop()
 #endif
 
 		#if defined(ESP8266)
-		#if (ENABLE_SENSOR1_PU)
-			pinModeExt(PIN_SENSOR1, INPUT_PULLUP); // this seems necessary for OS 3.2
-		#else
-			pinModeExt(PIN_SENSOR1, INPUT); 
-		#endif
-		#if (ENABLE_SENSOR2_PU)
-			pinModeExt(PIN_SENSOR2, INPUT_PULLUP);
-		#else
-			pinModeExt(PIN_SENSOR2, INPUT);
-		#endif
+		pinModeExt(PIN_SENSOR1, SENSOR1_PINMODE);
+		pinModeExt(PIN_SENSOR2, SENSOR2_PINMODE);
 
 		if(timeStatus() == timeNotSet) {
 			os.status.enabled = 0; // Disable until clock is valid
@@ -1713,6 +1705,10 @@ void perform_ntp_sync() {
 			last_ntp_result = t;
 		}
 		if (t>0) {
+			if(timeStatus() == timeNotSet) {
+				os.sensor_resetall(); // Force sensor refresh
+			}
+
 			setTime(t);
 			RTC.set(t);
 			DEBUG_PRINTLN(RTC.get());

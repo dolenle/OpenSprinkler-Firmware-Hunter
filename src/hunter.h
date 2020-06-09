@@ -13,26 +13,10 @@
 #include <Arduino.h>
 
 // library interface description
-class HunterInterfaceBitbang
+class HunterInterface
 {
     public:
-    HunterInterfaceBitbang(uint8_t pin);
-    void start(uint8_t zone, uint8_t time);
-    void stopAll() {start(1,0);}
-    void program(uint8_t num);
-
-    private:
-    void bitOne();
-    void bitZero();
-    void write(uint8_t * buffer, int len, bool extrabit);
-    static void setBitfield(uint8_t * bits, uint8_t pos, uint8_t val, uint8_t len);
-    uint8_t hunter_pin;
-};
-
-class HunterInterfaceUART
-{
-    public:
-    HunterInterfaceUART(uint8_t pin);
+    HunterInterface(uint8_t pin);
     void start(uint8_t zone, uint8_t time);
     void stopAll() {start(1,0);}
     void program(uint8_t num);
