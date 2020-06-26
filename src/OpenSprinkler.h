@@ -29,6 +29,7 @@
 #include "utils.h"
 #include "gpio.h"
 #include "images.h"
+#include "mqtt.h"
 
 #if defined(ARDUINO) // headers for ESP8266
 	#include <Arduino.h>
@@ -131,6 +132,7 @@ struct ConStatus {
 	byte sensor2:1;						// sensor2 status bit (when set, sensor2 on is detected)
 	byte sensor1_active:1;		// sensor1 active bit (when set, sensor1 is activated)
 	byte sensor2_active:1;		// sensor2 active bit (when set, sensor2 is activated)
+	byte req_mqtt_restart:1;			// request mqtt restart
 };
 
 extern const char iopt_json_names[];
@@ -153,6 +155,8 @@ public:
 	static byte pin_sr_data;		// RPi shift register data pin
 															// to handle RPi rev. 1
 #endif
+
+	static OSMqtt mqtt;
 
 	static NVConData nvdata;
 	static ConStatus status;
@@ -199,9 +203,8 @@ public:
 	static void begin();				// initialization, must call this function before calling other functions
 	static byte start_network();	// initialize network with the given mac and port
 	static byte start_ether();	// initialize ethernet with the given mac and port	
-#if defined(ARDUINO)
+	static bool network_connected();		// check if the network is up
 	static bool load_hardware_mac(byte* buffer, bool wired=false);	// read hardware mac address
-#endif
 	static time_t now_tz();
 	// -- station names and attributes
 	static void get_station_data(byte sid, StationData* data); // get station data
