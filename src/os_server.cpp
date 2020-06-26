@@ -25,6 +25,7 @@
 #include "program.h"
 #include "os_server.h"
 #include "weather.h"
+#include "mqtt.h"
 
 // External variables defined in main ion file
 #if defined(ARDUINO)
@@ -303,6 +304,11 @@ void send_packet(bool final=false) {
 #endif	
 }
 
+char dec2hexchar(byte dec) {
+	if(dec<10) return '0'+dec;
+	else return 'A'+(dec-10);
+}
+
 #if defined(ESP8266)
 String two_digits(uint8_t x) {
 	return String(x/10) + (x%10);
@@ -389,11 +395,6 @@ void append_key_value(String& html, const char* key, const String& value) {
 	html += "\":\"";
 	html += value;
 	html += "\",";
-}
-
-char dec2hexchar(byte dec) {
-	if(dec<10) return '0'+dec;
-	else return 'A'+(dec-10);
 }
 
 String get_ap_ssid() {
@@ -971,8 +972,8 @@ void server_json_options_main() {
 				continue;
 		#endif
 		
-		#if !defined(ESP8266)
-		// so far only OS3.x has sensor2
+		#if !(defined(ESP8266) || defined(PIN_SENSOR2))
+		// only OS 3.x or controllers that have PIN_SENSOR2 defined support sensor 2 options
 		if (oid==IOPT_SENSOR2_TYPE || oid==IOPT_SENSOR2_OPTION || oid==IOPT_SENSOR2_ON_DELAY || oid==IOPT_SENSOR2_OFF_DELAY)
 			continue;
 		#endif
@@ -1132,12 +1133,17 @@ void server_json_controller_main() {
 	bfill.emit_p(PSTR("\"RSSI\":$D,"), (int16_t)WiFi.RSSI());
 #endif
 
-	bfill.emit_p(PSTR("\"loc\":\"$O\",\"jsp\":\"$O\",\"wsp\":\"$O\",\"wto\":{$O},\"ifkey\":\"$O\",\"wtdata\":$S,\"wterr\":$D,"),
+	byte mac[6] = {0};
+	os.load_hardware_mac(mac, m_server!=NULL);
+	bfill.emit_p(PSTR("\"mac\":\"$X:$X:$X:$X:$X:$X\","), mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+
+	bfill.emit_p(PSTR("\"loc\":\"$O\",\"jsp\":\"$O\",\"wsp\":\"$O\",\"wto\":{$O},\"ifkey\":\"$O\",\"mqtt\":{$O},\"wtdata\":$S,\"wterr\":$D,"),
 							 SOPT_LOCATION,
 							 SOPT_JAVASCRIPTURL,
 							 SOPT_WEATHERURL,
 							 SOPT_WEATHER_OPTS,
 							 SOPT_IFTTT_KEY,
+							 SOPT_MQTT_OPTS,
 							 strlen(wt_rawData)==0?"{}":wt_rawData,
 							 wt_errCode);
 
@@ -1431,6 +1437,17 @@ void server_change_options()
 		os.sopt_save(SOPT_IFTTT_KEY, tmp_buffer);
 	}
 	
+	keyfound = 0;
+	if(findKeyVal(p, tmp_buffer, TMP_BUFFER_SIZE, PSTR("mqtt"), true, &keyfound)) {
+		urlDecode(tmp_buffer);
+		os.sopt_save(SOPT_MQTT_OPTS, tmp_buffer);
+		os.status.req_mqtt_restart = true;
+	} else if (keyfound) {
+		tmp_buffer[0]=0;
+		os.sopt_save(SOPT_MQTT_OPTS, tmp_buffer);
+		os.status.req_mqtt_restart = true;
+	}
+
 	/*
 	// wtkey is retired
 	if (findKeyVal(p, tmp_buffer, TMP_BUFFER_SIZE, PSTR("wtkey"), true, &keyfound)) {
@@ -1450,15 +1467,6 @@ void server_change_options()
 	} else if (keyfound) {
 		tmp_buffer[0]=0;
 		os.sopt_save(SOPT_BLYNK_TOKEN, tmp_buffer);
-	}
-
-	keyfound = 0;
-	if (findKeyVal(p, tmp_buffer, TMP_BUFFER_SIZE, PSTR("mqtt"), true, &keyfound)) {
-		urlDecode(tmp_buffer);
-		os.sopt_save(SOPT_MQTT_IP, tmp_buffer);
-	} else if (keyfound) {
-		tmp_buffer[0]=0;
-		os.sopt_save(SOPT_MQTT_IP, tmp_buffer);
 	}
 	*/
 
@@ -2302,5 +2310,3 @@ ulong getNtpTime()
 	return 0;
 }
 #endif
-
-
