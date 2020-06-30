@@ -144,7 +144,10 @@ public:
 	// data members
 #if defined(ESP8266)
 	static SSD1306Display lcd;	// 128x64 OLED display
+	#if defined(HUNTER_REM_PIN)
 	static HunterInterface hunter;
+	static uint8_t hunter_runtimes[];
+	#endif
 #elif defined(ARDUINO)
 	static LiquidCrystal lcd; // 16x2 character LCD
 #else

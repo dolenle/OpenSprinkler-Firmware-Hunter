@@ -71,7 +71,10 @@ extern char tmp_buffer[];
 extern char ether_buffer[];
 
 #if defined(ESP8266)
+	#if defined(HUNTER_REM_PIN)
 	HunterInterface OpenSprinkler::hunter(HUNTER_REM_PIN);
+	uint8_t OpenSprinkler::hunter_runtimes[MAX_NUM_STATIONS] = {0};
+	#endif
 	SSD1306Display OpenSprinkler::lcd(0x3c, SDA, SCL);
 	byte OpenSprinkler::state = OS_STATE_INITIAL;
 	byte OpenSprinkler::prev_station_bits[MAX_NUM_BOARDS];
@@ -1054,16 +1057,16 @@ void OpenSprinkler::latch_apply_all_station_bits() {
  */
 void OpenSprinkler::apply_all_station_bits() {
 #if defined(HUNTER_REM_PIN)
-	static uint8_t lastbits[6] = {0};
+	static uint8_t lastbits[MAX_EXT_BOARDS+1] = {0};
 	bool stop = true;
 	bool update = false;
-	for(int e = 0; e < 6; e++) { // Up to 48 zones
+	for(int e = 0; e < MAX_EXT_BOARDS+1; e++) { // Up to 48 zones
 		if(station_bits[e] != lastbits[e]) {
 			update = true;
 			lastbits[e] = station_bits[e];
 			for(int i = 0; i < 8; i++) {
 				if(station_bits[e] & (1 << i)) {
-					hunter.start(8*e+i+1, 240); // Runs for 6 hours
+					hunter.start(8*e+i+1, hunter_runtimes[8*e+i]);
 					stop = false;
 					return; // Sequential only.
 				}

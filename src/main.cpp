@@ -823,6 +823,13 @@ void do_loop()
 					if(!((bitvalue>>s)&1)) {
 						if (curr_time >= q->st && curr_time < q->st+q->dur) {
 							turn_on_station(sid);
+#if defined(HUNTER_REM_PIN)
+							if(q->dur % 60 == 0) {
+								os.hunter_runtimes[sid] = (uint8_t)(q->dur/60);
+							} else {
+								os.hunter_runtimes[sid] = (uint8_t)(q->dur/60)+1; //Round up to next minute
+							}
+#endif
 						} //if curr_time > scheduled_start_time
 					} // if current station is not running
 				}//end_s
@@ -1077,6 +1084,9 @@ void turn_on_station(byte sid) {
  */
 void turn_off_station(byte sid, ulong curr_time) {
 	os.set_station_bit(sid, 0);
+#if defined(HUNTER_REM_PIN)
+	os.hunter_runtimes[sid] = 0;
+#endif
 
 	byte qid = pd.station_qid[sid];
 	// ignore if we are turning off a station that's not running or scheduled to run
